@@ -1,26 +1,16 @@
 
-import React, { useState } from "react";
-import video from "../video/demo.mp4";
-import Header from "./Header";
-const VideoPlayer = () => {
-  return (
-    <div className="home-main bg-black mb-0 bg-gradient py-3">
-      <div style={{ height: "18vh" }}>
-        <Header />
-      </div>
-      <div
-        className="vh-100"
-        style={{ display: "flex", justifyContent: "center" }}
-      >
-        <video width="65%" height="55%" controls>
-          <source src={video} type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-      </div>
-    </div>
-  );
-};
+import { createStore, applyMiddleware } from "redux";
+import { composeWithDevTools } from "redux-devtools-extension";
+import thunk from "redux-thunk";
+import rootReducer from "./reducers";
 
-export default VideoPlayer;
+const middleware = [thunk];
+
+const store = createStore(
+  rootReducer,
+  composeWithDevTools(applyMiddleware(...middleware))
+);
+
+export default store;
 
             
