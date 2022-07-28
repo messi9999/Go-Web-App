@@ -2,118 +2,172 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
-import "bootstrap/dist/css/bootstrap.min.css";
 import Header from "../components/Header";
-import { Button, ToggleButton, ToggleButtonGroup } from "react-bootstrap";
+import { useState } from "react";
+import { Button, Form, Modal, Table } from "react-bootstrap";
 import axios from "axios";
-const BASE_URL = process.env.REACT_APP_BASEURL;
-export default function ProfileScreen() {
-  const { user: currentUser } = useSelector((state) => state.auth);
+import { useEffect } from "react";
+import { ReactComponent as EditIcon } from "../img/edit-button-svgrepo-com.svg";
+import { ReactComponent as DeleteIcon } from "../img/icons8-delete.svg";
 
-  const handleOnClick = async () => {
-    axios
-      .put(`${BASE_URL}/payment/cancel/${currentUser.id}`, {
-        SUBSCRIPTION_ID: currentUser.subscriptionId
-      })
-      .then((res) => {
-        localStorage.setItem("user", JSON.stringify(res.data));
-        window.location.reload();
-      })
-      .catch((error) => {
-        alert(error.message);
-      });
+const BASE_URL = process.env.REACT_APP_BASEURL;
+
+export default function Adminboard() {
+  const [show, setShow] = useState(false);
+  const [userID, setUserID] = useState();
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [expireDate, setExpireDate] = useState();
+
+  const handleClose = () => setShow(false);
+
+  const [users, setUsers] = useState([]);
+
+  const handleEdit = (userId, userName, userEmail, userExpireDate) => {
+    // Logic to handle the edit action for the user with the specified ID
+    setUserID(userId);
+    setUsername(userName);
+    setEmail(userEmail);
+    setExpireDate(userExpireDate);
+
+    setShow(true);
+    console.log(`Editing user with ID: ${userID}`);
   };
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(BASE_URL + "/all"); // Replace '/api/users' with your API endpoint
+        setUsers(response.data); // Assuming the response contains an array of users
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleDelete = async (userId) => {
+    // Logic to handle the delete action for the user with the specified ID
+    const res = await axios.delete(BASE_URL + `/delete/${userId}`);
+    console.log(res);
+    window.location.reload();
+  };
+
+  const handleSaveChanges = async () => {
+    const body = {
+      username: username,
+      email: email,
+      expireDate: expireDate
+    };
+    const res1 = await axios.put(BASE_URL + `/update/${userID}`, body);
+    console.log(res1);
+    setShow(false);
+    window.location.reload();
+  };
+
+  const { user: currentUser } = useSelector((state) => state.auth);
   if (!currentUser) {
     return <Navigate to="/login" />;
   }
-
+  if (!currentUser.roles[0]) {
+    return <Navigate to="/login" />;
+  }
   return (
-    <div style={{ height: "18vh" }}>
-      <div className="home-main bg-black mb-0 bg-gradient py-3">
+    <div className="home-main bg-black mb-0 bg-gradient py-3">
+      <div style={{ height: "18vh" }}>
         <Header />
-      </div>
-      <div className="bg-black" style={{ height: "110vh" }}>
-        <div className="text-white text-center d-flex flex-column justify-content-center align-content-center w-100 pt-5">
-          <div className="pb-5">
-            <h1>{currentUser.username}</h1>
+        <div style={{ marginTop: "20vh" }}>
+          <div>
+            <h2 className="d-flex justify-content-start align-content-center">
+              Admin
+            </h2>
           </div>
           <div>
-            <h4>Email: {currentUser.email}</h4>
-          </div>
-          <div>
-            <label className="fs-4">
-              Free Trial Remaining{" "}
-              <span
-                style={{
-                  fontWeight: "bolder",
-                  color: "#07874d"
-                }}
-              >
-                {Math.ceil(currentUser.expiredays)}
-              </span>{" "}
-              days
-            </label>
-          </div>
-        </div>
-        <div className="d-flex justify-content-center align-items-center">
-          <ToggleButtonGroup
-            className="btn d-flex flex-column flex-wrap justify-content-between align-items-center"
-            type="radio"
-            name="style-options"
-            size="sm"
-            style={{ paddingLeft: "0px" }}
-          >
-            <ToggleButton
-              variant="outline-light"
-              id="tbg-btn-11"
-              value={30}
-              style={{
-                borderRadius: "21px",
-                width: "25vh",
-                height: "auto",
-                fontSize: "15px",
-                paddingTop: "10px",
-                paddingBottom: "10px"
-              }}
-            >
-              $19.95 per a month
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </div>
-        <div className="d-flex flex-column justify-content-center align-items-center mt-5">
-          <div className="mb-5">
-            <label className="text-white">
-              Payment process:{" "}
-              {currentUser.subscriptionStatus === "active" ||
-              currentUser.subscriptionStatus === "trialing" ? (
-                <div className="d-flex flex-column justify-content-center align-items-center">
-                  <span className="mb-3 mt-1">Active</span>
-                  <botton
-                    className="btn btn-sm btn-outline-light"
-                    onClick={handleOnClick}
-                  >
-                    Cancel
-                  </botton>
-                </div>
-              ) : (
-                <div className="d-flex flex-column justify-content-center align-items-center">
-                  <span className="mb-3">Deactive</span>
-                  <Button
-                    href={process.env.REACT_APP_PAYMENT_URL}
-                    target="_blank"
-                    variant="secondary"
-                    size="md"
-                    style={{ background: "bottom" }}
-                  >
-                    Pay Now
-                  </Button>
-                </div>
-              )}
-            </label>
+            <Table responsive="sm">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>ExpireDate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td>{user.id}</td>
+                    <td>{user.username}</td>
+                    <td>{user.email}</td>
+                    <td>{user.expireDate}</td>
+                    <td className="d-flex justify-content-start align-content-center">
+                      <div
+                        onClick={() =>
+                          handleEdit(
+                            user.id,
+                            user.username,
+                            user.email,
+                            user.expireDate
+                          )
+                        }
+                      >
+                        <EditIcon style={{ width: "25px", height: "auto" }} />
+                      </div>
+                      <div onClick={() => handleDelete(user.id)}>
+                        <DeleteIcon style={{ width: "25px", height: "auto" }} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
           </div>
         </div>
       </div>
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Modal heading</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group>
+              <Form.Label>{userID}</Form.Label>
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Username</Form.Label>
+              <Form.Control
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Email</Form.Label>
+              <Form.Control
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>ExpireDate</Form.Label>
+              <Form.Control
+                type="date"
+                value={expireDate}
+                onChange={(e) => setExpireDate(e.target.value)}
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleSaveChanges}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
