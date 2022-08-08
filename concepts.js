@@ -1,237 +1,121 @@
 
-import React, { useState, useRef, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-
-import Form from "react-validation/build/form";
-import Input from "react-validation/build/input";
-import CheckButton from "react-validation/build/button";
-import { isEmail } from "validator";
-
-import { register } from "../actions/auth";
-
+import React from "react";
+import { useSelector } from "react-redux";
+import { Navigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { useNavigate } from "react-router-dom";
+import Header from "../components/Header";
+import { Button, ToggleButton, ToggleButtonGroup } from "react-bootstrap";
+import axios from "axios";
+const BASE_URL = process.env.REACT_APP_BASEURL;
+export default function ProfileScreen() {
+  const { user: currentUser } = useSelector((state) => state.auth);
 
-import { ReactComponent as BugleIcaon } from "../img/icon_logo.svg";
+  const handleOnClick = async () => {
+    axios
+      .put(`${BASE_URL}/payment/cancel/${currentUser.id}`, {
+        SUBSCRIPTION_ID: currentUser.subscriptionId
+      })
+      .then((res) => {
+        localStorage.setItem("user", JSON.stringify(res.data));
+        window.location.reload();
+      })
+      .catch((error) => {
+        alert(error.message);
+      });
+  };
 
-const required = (value) => {
-  if (!value) {
-    return (
-      <div className="alert alert-danger" role="alert">
-        This field is required!
-      </div>
-    );
+  if (!currentUser) {
+    return <Navigate to="/login" />;
   }
-};
-
-const validEmail = (value) => {
-  if (!isEmail(value)) {
-    return (
-      <div className="alert alert-danger" role="alert">
-        This is not a valid email.
-      </div>
-    );
-  }
-};
-
-const vusername = (value) => {
-  if (value.length < 3 || value.length > 20) {
-    return (
-      <div className="alert alert-danger" role="alert">
-        The username must be between 3 and 20 characters.
-      </div>
-    );
-  }
-};
-
-const vpassword = (value) => {
-  if (value.length < 6 || value.length > 40) {
-    return (
-      <div className="alert alert-danger" role="alert">
-        The password must be between 6 and 40 characters.
-      </div>
-    );
-  }
-};
-
-const Register = () => {
-  const form = useRef();
-  const checkBtn = useRef();
-
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [successful, setSuccessful] = useState(false);
-  const [confirmpassword, setConfirmpassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-
-  const roles = ["user"];
-
-  const { message } = useSelector((state) => state.message);
-
-  const dispatch = useDispatch();
-
-  const navigate = useNavigate();
-
-  const onChangeUsername = (e) => {
-    const username = e.target.value;
-    setUsername(username);
-  };
-
-  const onChangeEmail = (e) => {
-    const email = e.target.value;
-    setEmail(email);
-  };
-
-  const onChangePassword = (e) => {
-    const password = e.target.value;
-    setPassword(password);
-  };
-
-  const onChangeConPassword = (e) => {
-    e.preventDefault();
-    setConfirmpassword(e.target.value);
-  };
-
-  useEffect(() => {
-    if (password !== confirmpassword) {
-      setPasswordError("Passwords do not match");
-    } else {
-      // Password and confirm password match, do something
-      setPasswordError("");
-    }
-  }, [password, confirmpassword]);
-
-  const handleRegister = (e) => {
-    e.preventDefault();
-
-    setSuccessful(false);
-
-    form.current.validateAll();
-    if (passwordError) {
-      alert("Please confirm your password");
-    } else if (checkBtn.current.context._errors.length === 0) {
-      dispatch(register(username, email, password, roles))
-        .then(() => {
-          setSuccessful(true);
-        })
-        .catch(() => {
-          setSuccessful(false);
-        });
-    }
-  };
 
   return (
-    <div className="col-md-12">
-      <div className="card card-container text-white rounded-4">
-        <label className="fs-3 fw-bolder text-center mb-2">
-          Welcome to the Bugle AI Club!
-        </label>
-        <label className="fs-5 fw-semibold text-center mb-3">
-          Thanks for joining us, please finish your account setup below
-        </label>
-        <div className="profile-img-card">
-          <BugleIcaon />
+    <div style={{ height: "18vh" }}>
+      <div className="home-main bg-black mb-0 bg-gradient py-3">
+        <Header />
+      </div>
+      <div className="bg-black" style={{ height: "110vh" }}>
+        <div className="text-white text-center d-flex flex-column justify-content-center align-content-center w-100 pt-5">
+          <div className="pb-5">
+            <h1>{currentUser.username}</h1>
+          </div>
+          <div>
+            <h4>Email: {currentUser.email}</h4>
+          </div>
+          <div>
+            <label className="fs-4">
+              Free Trial Remaining{" "}
+              <span
+                style={{
+                  fontWeight: "bolder",
+                  color: "#07874d"
+                }}
+              >
+                {Math.ceil(currentUser.expiredays)}
+              </span>{" "}
+              days
+            </label>
+          </div>
         </div>
-
-        <Form onSubmit={handleRegister} ref={form}>
-          {!successful && (
-            <div>
-              <div className="form-group mb-3">
-                <label htmlFor="username">Create a Username</label>
-                <Input
-                  type="text"
-                  className="form-control"
-                  name="username"
-                  value={username}
-                  onChange={onChangeUsername}
-                  validations={[required, vusername]}
-                />
-              </div>
-
-              <div className="form-group mb-3">
-                <label htmlFor="email">Confirm your Email</label>
-                <Input
-                  type="email"
-                  className="form-control"
-                  name="email"
-                  value={email}
-                  onChange={onChangeEmail}
-                  validations={[required, validEmail]}
-                />
-              </div>
-
-              <div className="form-group mb-3">
-                <label htmlFor="password">Create a Password</label>
-                <Input
-                  type="password"
-                  className="form-control"
-                  name="password"
-                  value={password}
-                  onChange={onChangePassword}
-                  validations={[required, vpassword]}
-                />
-              </div>
-
-              <div className="form-group mb-3">
-                <label htmlFor="confirmpassword">Confirm Password</label>
-                <Input
-                  type="password"
-                  className="form-control"
-                  name="confirmpassword"
-                  value={confirmpassword}
-                  onChange={onChangeConPassword}
-                />
-                <div className="text-center w-100 p-2">
-                  {passwordError && (
-                    <span className="text-center bg-danger bg-opacity-50 mt-5 w-100 p-2">
-                      {passwordError}
-                    </span>
-                  )}
+        <div className="d-flex justify-content-center align-items-center">
+          <ToggleButtonGroup
+            className="btn d-flex flex-column flex-wrap justify-content-between align-items-center"
+            type="radio"
+            name="style-options"
+            size="sm"
+            style={{ paddingLeft: "0px" }}
+          >
+            <ToggleButton
+              variant="outline-light"
+              id="tbg-btn-11"
+              value={30}
+              style={{
+                borderRadius: "21px",
+                width: "25vh",
+                height: "auto",
+                fontSize: "15px",
+                paddingTop: "10px",
+                paddingBottom: "10px"
+              }}
+            >
+              $19.95 per a month
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </div>
+        <div className="d-flex flex-column justify-content-center align-items-center mt-5">
+          <div className="mb-5">
+            <label className="text-white">
+              Payment process:{" "}
+              {currentUser.subscriptionStatus === "active" ||
+              currentUser.subscriptionStatus === "trialing" ? (
+                <div className="d-flex flex-column justify-content-center align-items-center">
+                  <span className="mb-3 mt-1">Active</span>
+                  <botton
+                    className="btn btn-sm btn-outline-light"
+                    onClick={handleOnClick}
+                  >
+                    Cancel
+                  </botton>
                 </div>
-              </div>
-
-              <div className="form-group mt-3">
-                <button className="btn btn-primary btn-block float-end">
-                  Sign Up
-                </button>
-                <button
-                  className="btn btn-sm btn-white border-0 text-decoration-underline mt-4 text-white"
-                  onClick={() => {
-                    navigate("/login");
-                  }}
-                >
-                  Already have an account? Login here
-                </button>
-              </div>
-            </div>
-          )}
-
-          {message && (
-            <div className="form-group">
-              <div
-                className={
-                  successful ? "alert alert-success" : "alert alert-danger"
-                }
-                role="alert"
-              >
-                {message}
-              </div>
-              <button
-                className="btn btn-sm btn-white bg-black text-white border-0 text-decoration-underline mt-4"
-                onClick={navigate("/login")}
-              >
-                Signin now
-              </button>
-            </div>
-          )}
-          <CheckButton style={{ display: "none" }} ref={checkBtn} />
-        </Form>
+              ) : (
+                <div className="d-flex flex-column justify-content-center align-items-center">
+                  <span className="mb-3">Deactive</span>
+                  <Button
+                    href={process.env.REACT_APP_PAYMENT_URL}
+                    target="_blank"
+                    variant="secondary"
+                    size="md"
+                    style={{ background: "bottom" }}
+                  >
+                    Pay Now
+                  </Button>
+                </div>
+              )}
+            </label>
+          </div>
+        </div>
       </div>
     </div>
   );
-};
-
-export default Register;
+}
 
             
