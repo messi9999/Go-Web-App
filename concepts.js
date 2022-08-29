@@ -1,138 +1,121 @@
 
-import "./Login.css";
-import React, { useState, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Navigate, useNavigate } from "react-router-dom";
+import React from "react";
+import { useSelector } from "react-redux";
+import { Navigate } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
+import Header from "../components/Header";
+import { Button, ToggleButton, ToggleButtonGroup } from "react-bootstrap";
+import axios from "axios";
+const BASE_URL = process.env.REACT_APP_BASEURL;
+export default function ProfileScreen() {
+  const { user: currentUser } = useSelector((state) => state.auth);
 
-import Form from "react-validation/build/form";
-import Input from "react-validation/build/input";
-import CheckButton from "react-validation/build/button";
-
-import { ReactComponent as BugleIcaon } from "../img/icon_logo.svg";
-
-import { login } from "../actions/auth";
-
-const required = (value) => {
-  if (!value) {
-    return (
-      <div className="alert alert-danger" role="alert">
-        This field is required!
-      </div>
-    );
-  }
-};
-
-const Login = (props) => {
-  let navigate = useNavigate();
-
-  const form = useRef();
-  const checkBtn = useRef();
-
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const { isLoggedIn } = useSelector((state) => state.auth);
-  const { message } = useSelector((state) => state.message);
-
-  const dispatch = useDispatch();
-
-  const onChangeUsername = (e) => {
-    const username = e.target.value;
-    setUsername(username);
+  const handleOnClick = async () => {
+    axios
+      .put(`${BASE_URL}/payment/cancel/${currentUser.id}`, {
+        SUBSCRIPTION_ID: currentUser.subscriptionId
+      })
+      .then((res) => {
+        localStorage.setItem("user", JSON.stringify(res.data));
+        window.location.reload();
+      })
+      .catch((error) => {
+        alert(error.message);
+      });
   };
 
-  const onChangePassword = (e) => {
-    const password = e.target.value;
-    setPassword(password);
-  };
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-
-    setLoading(true);
-
-    form.current.validateAll();
-
-    if (checkBtn.current.context._errors.length === 0) {
-      dispatch(login(username, password))
-        .then(() => {
-          navigate("/");
-          window.location.reload();
-        })
-        .catch(() => {
-          if (message) {
-            alert(message);
-          }
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
-  };
-
-  if (isLoggedIn) {
-    return <Navigate to="/" />;
+  if (!currentUser) {
+    return <Navigate to="/login" />;
   }
 
   return (
-    <div className="col-md-12">
-      <div className="card card-container rounded-4">
-        <div className="profile-img-card">
-          <BugleIcaon />
+    <div style={{ height: "18vh" }}>
+      <div className="home-main bg-black mb-0 bg-gradient py-3">
+        <Header />
+      </div>
+      <div className="bg-black" style={{ height: "110vh" }}>
+        <div className="text-white text-center d-flex flex-column justify-content-center align-content-center w-100 pt-5">
+          <div className="pb-5">
+            <h1>{currentUser.username}</h1>
+          </div>
+          <div>
+            <h4>Email: {currentUser.email}</h4>
+          </div>
+          <div>
+            <label className="fs-4">
+              Free Trial Remaining{" "}
+              <span
+                style={{
+                  fontWeight: "bolder",
+                  color: "#07874d"
+                }}
+              >
+                {Math.ceil(currentUser.expiredays)}
+              </span>{" "}
+              days
+            </label>
+          </div>
         </div>
-
-        <Form onSubmit={handleLogin} ref={form} className="text-white">
-          <div className="form-group mb-3">
-            <label htmlFor="username">Username</label>
-            <Input
-              type="text"
-              className="form-control"
-              name="username"
-              value={username}
-              onChange={onChangeUsername}
-              validations={[required]}
-            />
-          </div>
-
-          <div className="form-group mb-3">
-            <label htmlFor="password">Password</label>
-            <Input
-              type="password"
-              className="form-control"
-              name="password"
-              value={password}
-              onChange={onChangePassword}
-              validations={[required]}
-            />
-          </div>
-
-          <div className="form-group">
-            <button
-              className="btn btn-primary btn-block mt-3 float-end"
-              disabled={loading}
+        <div className="d-flex justify-content-center align-items-center">
+          <ToggleButtonGroup
+            className="btn d-flex flex-column flex-wrap justify-content-between align-items-center"
+            type="radio"
+            name="style-options"
+            size="sm"
+            style={{ paddingLeft: "0px" }}
+          >
+            <ToggleButton
+              variant="outline-light"
+              id="tbg-btn-11"
+              value={30}
+              style={{
+                borderRadius: "21px",
+                width: "25vh",
+                height: "auto",
+                fontSize: "15px",
+                paddingTop: "10px",
+                paddingBottom: "10px"
+              }}
             >
-              {loading && (
-                <span className="spinner-border spinner-border-sm"></span>
+              $19.95 per a month
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </div>
+        <div className="d-flex flex-column justify-content-center align-items-center mt-5">
+          <div className="mb-5">
+            <label className="text-white">
+              Payment process:{" "}
+              {currentUser.subscriptionStatus === "active" ||
+              currentUser.subscriptionStatus === "trialing" ? (
+                <div className="d-flex flex-column justify-content-center align-items-center">
+                  <span className="mb-3 mt-1">Active</span>
+                  <botton
+                    className="btn btn-sm btn-outline-light"
+                    onClick={handleOnClick}
+                  >
+                    Cancel
+                  </botton>
+                </div>
+              ) : (
+                <div className="d-flex flex-column justify-content-center align-items-center">
+                  <span className="mb-3">Deactive</span>
+                  <Button
+                    href={process.env.REACT_APP_PAYMENT_URL}
+                    target="_blank"
+                    variant="secondary"
+                    size="md"
+                    style={{ background: "bottom" }}
+                  >
+                    Pay Now
+                  </Button>
+                </div>
               )}
-              <span>Login</span>
-            </button>
+            </label>
           </div>
-
-          {/* {message && (
-            <div className="form-group">
-              <div className="alert alert-danger" role="alert">
-                {message}
-              </div>
-            </div>
-          )} */}
-          <CheckButton style={{ display: "none" }} ref={checkBtn} />
-        </Form>
+        </div>
       </div>
     </div>
   );
-};
-
-export default Login;
+}
 
             
