@@ -1,138 +1,175 @@
 
-import "./Login.css";
-import React, { useState, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Navigate, useNavigate } from "react-router-dom";
+import React from "react";
+import { useSelector } from "react-redux";
+import { Navigate } from "react-router-dom";
+import Header from "../components/Header";
+import { useState } from "react";
+import { Button, Form, Modal, Table } from "react-bootstrap";
+import axios from "axios";
+import { useEffect } from "react";
+import { ReactComponent as EditIcon } from "../img/edit-button-svgrepo-com.svg";
+import { ReactComponent as DeleteIcon } from "../img/icons8-delete.svg";
 
-import Form from "react-validation/build/form";
-import Input from "react-validation/build/input";
-import CheckButton from "react-validation/build/button";
+const BASE_URL = process.env.REACT_APP_BASEURL;
 
-import { ReactComponent as BugleIcaon } from "../img/icon_logo.svg";
-
-import { login } from "../actions/auth";
-
-const required = (value) => {
-  if (!value) {
-    return (
-      <div className="alert alert-danger" role="alert">
-        This field is required!
-      </div>
-    );
-  }
-};
-
-const Login = (props) => {
-  let navigate = useNavigate();
-
-  const form = useRef();
-  const checkBtn = useRef();
-
+export default function Adminboard() {
+  const [show, setShow] = useState(false);
+  const [userID, setUserID] = useState();
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [expireDate, setExpireDate] = useState();
 
-  const { isLoggedIn } = useSelector((state) => state.auth);
-  const { message } = useSelector((state) => state.message);
+  const handleClose = () => setShow(false);
 
-  const dispatch = useDispatch();
+  const [users, setUsers] = useState([]);
 
-  const onChangeUsername = (e) => {
-    const username = e.target.value;
-    setUsername(username);
+  const handleEdit = (userId, userName, userEmail, userExpireDate) => {
+    // Logic to handle the edit action for the user with the specified ID
+    setUserID(userId);
+    setUsername(userName);
+    setEmail(userEmail);
+    setExpireDate(userExpireDate);
+
+    setShow(true);
+    console.log(`Editing user with ID: ${userID}`);
   };
 
-  const onChangePassword = (e) => {
-    const password = e.target.value;
-    setPassword(password);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(BASE_URL + "/all"); // Replace '/api/users' with your API endpoint
+        setUsers(response.data); // Assuming the response contains an array of users
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleDelete = async (userId) => {
+    // Logic to handle the delete action for the user with the specified ID
+    const res = await axios.delete(BASE_URL + `/delete/${userId}`);
+    console.log(res);
+    window.location.reload();
   };
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-
-    setLoading(true);
-
-    form.current.validateAll();
-
-    if (checkBtn.current.context._errors.length === 0) {
-      dispatch(login(username, password))
-        .then(() => {
-          navigate("/");
-          window.location.reload();
-        })
-        .catch(() => {
-          if (message) {
-            alert(message);
-          }
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
+  const handleSaveChanges = async () => {
+    const body = {
+      username: username,
+      email: email,
+      expireDate: expireDate
+    };
+    const res1 = await axios.put(BASE_URL + `/update/${userID}`, body);
+    console.log(res1);
+    setShow(false);
+    window.location.reload();
   };
 
-  if (isLoggedIn) {
-    return <Navigate to="/" />;
+  const { user: currentUser } = useSelector((state) => state.auth);
+  if (!currentUser) {
+    return <Navigate to="/login" />;
   }
-
+  if (!currentUser.roles[0]) {
+    return <Navigate to="/login" />;
+  }
   return (
-    <div className="col-md-12">
-      <div className="card card-container rounded-4">
-        <div className="profile-img-card">
-          <BugleIcaon />
+    <div className="home-main bg-black mb-0 bg-gradient py-3">
+      <div style={{ height: "18vh" }}>
+        <Header />
+        <div style={{ marginTop: "20vh" }}>
+          <div>
+            <h2 className="d-flex justify-content-start align-content-center">
+              Admin
+            </h2>
+          </div>
+          <div>
+            <Table responsive="sm">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>ExpireDate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td>{user.id}</td>
+                    <td>{user.username}</td>
+                    <td>{user.email}</td>
+                    <td>{user.expireDate}</td>
+                    <td className="d-flex justify-content-start align-content-center">
+                      <div
+                        onClick={() =>
+                          handleEdit(
+                            user.id,
+                            user.username,
+                            user.email,
+                            user.expireDate
+                          )
+                        }
+                      >
+                        <EditIcon style={{ width: "25px", height: "auto" }} />
+                      </div>
+                      <div onClick={() => handleDelete(user.id)}>
+                        <DeleteIcon style={{ width: "25px", height: "auto" }} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
         </div>
-
-        <Form onSubmit={handleLogin} ref={form} className="text-white">
-          <div className="form-group mb-3">
-            <label htmlFor="username">Username</label>
-            <Input
-              type="text"
-              className="form-control"
-              name="username"
-              value={username}
-              onChange={onChangeUsername}
-              validations={[required]}
-            />
-          </div>
-
-          <div className="form-group mb-3">
-            <label htmlFor="password">Password</label>
-            <Input
-              type="password"
-              className="form-control"
-              name="password"
-              value={password}
-              onChange={onChangePassword}
-              validations={[required]}
-            />
-          </div>
-
-          <div className="form-group">
-            <button
-              className="btn btn-primary btn-block mt-3 float-end"
-              disabled={loading}
-            >
-              {loading && (
-                <span className="spinner-border spinner-border-sm"></span>
-              )}
-              <span>Login</span>
-            </button>
-          </div>
-
-          {/* {message && (
-            <div className="form-group">
-              <div className="alert alert-danger" role="alert">
-                {message}
-              </div>
-            </div>
-          )} */}
-          <CheckButton style={{ display: "none" }} ref={checkBtn} />
-        </Form>
       </div>
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Modal heading</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group>
+              <Form.Label>{userID}</Form.Label>
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Username</Form.Label>
+              <Form.Control
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Email</Form.Label>
+              <Form.Control
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>ExpireDate</Form.Label>
+              <Form.Control
+                type="date"
+                value={expireDate}
+                onChange={(e) => setExpireDate(e.target.value)}
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleSaveChanges}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
-};
-
-export default Login;
+}
 
             
