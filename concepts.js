@@ -1,183 +1,119 @@
 
-import "./Header.css";
-import React, { useCallback, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-
-import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../actions/auth";
-import { CLEAR_MESSAGE } from "../actions/types";
-import { ReactComponent as LogoIcon } from "../img/icon.svg";
-import { ReactComponent as UserAvatar } from "../img/user.svg";
-import { ReactComponent as MenuIcon } from "../img/menu-svgrepo-com.svg";
-import { ReactComponent as HomeIcon } from "../img/home.svg";
-import UserinfoModal from "./UserinfoModal";
-import { Dropdown } from "react-bootstrap";
-
-export default function Header() {
-  const navigate = useNavigate();
+import React from "react";
+import { useSelector } from "react-redux";
+import { Navigate } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
+import Header from "../components/Header";
+import { Button, ToggleButton, ToggleButtonGroup } from "react-bootstrap";
+import axios from "axios";
+const BASE_URL = process.env.REACT_APP_BASEURL;
+export default function ProfileScreen() {
   const { user: currentUser } = useSelector((state) => state.auth);
-  const dispatch = useDispatch();
 
-  let location = useLocation();
-
-  useEffect(() => {
-    if (["/login", "/register"].includes(location.pathname)) {
-      dispatch(CLEAR_MESSAGE()); // clear message when changing location
-    }
-  }, [dispatch, location]);
-
-  const logOut = useCallback(() => {
-    dispatch(logout());
-  }, [dispatch]);
-
-  const [isOpen, setIsOpen] = React.useState(false);
-
-  const openModal = () => {
-    setIsOpen(true);
+  const handleOnClick = async () => {
+    axios
+      .put(`${BASE_URL}/payment/cancel/${currentUser.id}`, {
+        SUBSCRIPTION_ID: currentUser.subscriptionId
+      })
+      .then((res) => {
+        localStorage.setItem("user", JSON.stringify(res.data));
+        window.location.reload();
+      })
+      .catch((error) => {
+        alert(error.message);
+      });
   };
 
-  const closeModal = () => {
-    setIsOpen(false);
-  };
+  if (!currentUser) {
+    return <Navigate to="/login" />;
+  }
 
   return (
-    <div className="main-header row pt-1 p-0 m-0">
-      <div className="col-8 p-0 d-flex justify-content-start align-items-center">
-        <a href="/">
-          <HomeIcon className="header-homeicon" />
-        </a>
-        <div id="main-vector-img">
-          <LogoIcon />
-        </div>
-        <label className="main-site-text text-white mt-0 ms-3">BUGLE AI</label>
-        <div className="ps-5 d-flex justify-content-start align-items-center">
-          <button
-            className="header-btn btn btn-default fs-6 text-white border-white rounded-5 me-5"
-            onClick={() => {
-              navigate("/demo");
-            }}
-          >
-            WATCH DEMO
-          </button>
-          {currentUser &&
-          (currentUser.subscriptionStatus === "active" ||
-            currentUser.subscriptionStatus === "trialing") ? (
-            <button
-              className="header-btn btn btn-md btn-success rounded-5"
-              style={{}}
-              onClick={() => {
-                navigate("/mainscreen");
-              }}
-            >
-              CREATE NEWSLETTER
-            </button>
-          ) : (
-            <button
-              className="header-btn btn btn-md btn-success rounded-5"
-              style={{}}
-              onClick={() => {
-                window.location.href = process.env.REACT_APP_PAYMENT_URL;
-              }}
-            >
-              START FREE TRIAL
-            </button>
-          )}
-        </div>
+    <div style={{ height: "18vh" }}>
+      <div className="home-main bg-black mb-0 bg-gradient py-3">
+        <Header />
       </div>
-
-      <div className="col-4 p-0 d-flex justify-content-end align-items-center">
-        {currentUser ? (
-          <button
-            id="btn-contact"
-            className="header-btn btn btn-md btn-default text-white border-white rounded-5 me-5"
-            onClick={() => {
-              logOut();
-              navigate("/");
-            }}
-          >
-            Logout
-          </button>
-        ) : (
-          <button
-            id="btn-contact"
-            className="header-btn btn btn-md btn-default text-white border-white rounded-5 me-5"
-            onClick={() => {
-              navigate("/login");
-            }}
-          >
-            Login
-          </button>
-        )}
-        <button
-          id="btn-contact"
-          className="header-btn btn btn-md btn-default text-white border-white rounded-5 me-5"
-          onClick={() => {
-            navigate("/contactus");
-          }}
-        >
-          Contact Us
-        </button>
-        {currentUser ? (
-          <div className="d-flex flex-row justify-content-center align-items-center">
-            <div className="text-white me-2">{currentUser.username}</div>
-
-            <div>
-              <Dropdown className="d-inline mx-2">
-                <Dropdown.Toggle id="header-avatar-user">
-                  <div>
-                    <UserAvatar
-                      style={{
-                        width: "20px",
-                        height: "20px"
-                      }}
-                    />
-                  </div>
-                </Dropdown.Toggle>
-
-                <Dropdown.Menu className="bg-black">
-                  <div>
-                    <Dropdown.Item href="/profile" style={{ color: "white" }}>
-                      User Info
-                    </Dropdown.Item>
-                    {currentUser.roles[0] === "ROLE_ADMIN" && (
-                      <Dropdown.Item href="/admin" style={{ color: "white" }}>
-                        Admin
-                      </Dropdown.Item>
-                    )}
-                    <Dropdown.Item onClick={logOut} style={{ color: "white" }}>
-                      Logout
-                    </Dropdown.Item>
-                  </div>
-                </Dropdown.Menu>
-              </Dropdown>
-            </div>
-
-            <div>
-              <div id="header-avatar-drop" onClick={openModal}>
-                <MenuIcon />
-              </div>
-            </div>
+      <div className="bg-black" style={{ height: "110vh" }}>
+        <div className="text-white text-center d-flex flex-column justify-content-center align-content-center w-100 pt-5">
+          <div className="pb-5">
+            <h1>{currentUser.username}</h1>
           </div>
-        ) : (
           <div>
-            <div id="header-avatar-user">
-              <UserAvatar
-                style={{
-                  width: "20px",
-                  height: "20px"
-                }}
-                onClick={() => {
-                  navigate("/login");
-                }}
-              />
-            </div>
-            <div id="header-avatar-drop" onClick={openModal}>
-              <MenuIcon />
-            </div>
+            <h4>Email: {currentUser.email}</h4>
           </div>
-        )}
+          <div>
+            <label className="fs-4">
+              Free Trial Remaining{" "}
+              <span
+                style={{
+                  fontWeight: "bolder",
+                  color: "#07874d"
+                }}
+              >
+                {Math.ceil(currentUser.expiredays)}
+              </span>{" "}
+              days
+            </label>
+          </div>
+        </div>
+        <div className="d-flex justify-content-center align-items-center">
+          <ToggleButtonGroup
+            className="btn d-flex flex-column flex-wrap justify-content-between align-items-center"
+            type="radio"
+            name="style-options"
+            size="sm"
+            style={{ paddingLeft: "0px" }}
+          >
+            <ToggleButton
+              variant="outline-light"
+              id="tbg-btn-11"
+              value={30}
+              style={{
+                borderRadius: "21px",
+                width: "25vh",
+                height: "auto",
+                fontSize: "15px",
+                paddingTop: "10px",
+                paddingBottom: "10px"
+              }}
+            >
+              $19.95 per a month
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </div>
+        <div className="d-flex flex-column justify-content-center align-items-center mt-5">
+          <div className="mb-5">
+            <label className="text-white">
+              Payment process:{" "}
+              {currentUser.subscriptionStatus === "active" ||
+              currentUser.subscriptionStatus === "trialing" ? (
+                <div className="d-flex flex-column justify-content-center align-items-center">
+                  <span className="mb-3 mt-1">Active</span>
+                  <botton
+                    className="btn btn-sm btn-outline-light"
+                    onClick={handleOnClick}
+                  >
+                    Cancel
+                  </botton>
+                </div>
+              ) : (
+                <div className="d-flex flex-column justify-content-center align-items-center">
+                  <span className="mb-3">Deactive</span>
+                  <Button
+                    href={process.env.REACT_APP_PAYMENT_URL}
+                    target="_blank"
+                    variant="secondary"
+                    size="md"
+                    style={{ background: "bottom" }}
+                  >
+                    Pay Now
+                  </Button>
+                </div>
+              )}
+            </label>
+          </div>
+        </div>
       </div>
-      <UserinfoModal isOpen={isOpen} onClose={closeModal} />
     </div>
   );
 }
